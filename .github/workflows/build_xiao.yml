@@ -7,17 +7,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout OpenSK
+      - name: Checkout OpenSK stable main branch
         uses: actions/checkout@v4
         with:
+          ref: main
           submodules: recursive
 
-      - name: Install system packages and Rust
+      - name: Install system packages, Rust and uv
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 python3-pip python3-venv libssl-dev pkg-config uuid-runtime git
+          sudo apt-get install -y python3 python3-pip python3-venv libssl-dev pkg-config uuid-runtime git curl
           curl --proto '=https' --tlsv1.2 -sSf https://rustup.rs | sh -s -- -y
+          curl -LsSf https://astral.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Run OpenSK setup
         run: |
@@ -62,7 +65,3 @@ jobs:
         with:
           name: xiao_fido2_key
           path: xiao_fido2_key.uf2
-
-          
-
-
