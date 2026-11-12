@@ -15,11 +15,11 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Checkout OpenSK
+      - name: Checkout OpenSK ctap2.1
         uses: actions/checkout@v4
         with:
           repository: google/OpenSK
-          ref: ctap2.0
+          ref: ctap2.1
           fetch-depth: 0
           submodules: recursive
 
@@ -52,6 +52,7 @@ jobs:
 
       - name: Build firmware
         run: |
+          find . -name "Cargo.toml" -exec sed -i 's/quote = "1"/quote = "=1.0.26"/g' {} +
           python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none
 
       - name: Make UF2 file
