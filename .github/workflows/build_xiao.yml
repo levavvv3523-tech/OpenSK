@@ -10,8 +10,11 @@ env:
 jobs:
   build:
     runs-on: ubuntu-22.04
+    defaults:
+      run:
+        shell: bash
     steps:
-      - name: Checkout OpenSK ctap2.0
+      - name: Checkout OpenSK
         uses: actions/checkout@v4
         with:
           repository: google/OpenSK
@@ -19,14 +22,14 @@ jobs:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Install build tools
+      - name: Install tools
         run: |
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip libssl-dev pkg-config uuid-runtime git curl libudev-dev
           curl --proto '=https' --tlsv1.2 -sSf https://rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Run setup
+      - name: Setup OpenSK
         env:
           TERM: xterm
         run: |
@@ -34,27 +37,29 @@ jobs:
           chmod +x setup.sh
           ./setup.sh
 
-      - name: Patch XIAO nRF52840 Pins and Memory
+      - name: Patch XIAO pins and memory
         run: |
-          MAIN_RS="third_party/tock/boards/nordic/nrf52840_dongle/src/main.rs"
-          LAYOUT_LD="third_party/tock/boards/nordic/nrf52840_dongle/layout.ld"
-          sed -i 's/Pin::P1_06/Pin::P0_02/g' "$MAIN_RS"
-          sed -i 's/Pin::P0_08/Pin::P0_30/g' "$MAIN_RS"
-          sed -i 's/Pin::P1_09/Pin::P0_26/g' "$MAIN_RS"
-          sed -i 's/Pin::P0_12/Pin::P0_06/g' "$MAIN_RS"
-          printf "MEMORY\n{\n  rom (rx)  : ORIGIN = 0x00027000, LENGTH = 0x00019000\n  prog (rx) : ORIGIN = 0x00040000, LENGTH = 0x000A0000\n  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00040000\n}\nINCLUDE ../kernel_layout.ld\n" > "$LAYOUT_LD"
+          M="third_party/tock/boards/nordic/nrf52840_dongle/src/main.rs"
+          L="third_party/tock/boards/nordic/nrf52840_dongle/layout.ld"
+          sed -i 's/Pin::P1_06/Pin::P0_02/g' "$M"
+          sed -i 's/Pin::P0_08/Pin::P0_30/g' "$M"
+          sed -i 's/Pin::P1_09/Pin::P0_26/g' "$M"
+          sed -i 's/Pin::P0_12/Pin::P0_06/g' "$M"
+          sed -i 's/0x00001000/0x00027000/g' "$L"
+          sed -i 's/0x00030000/0x00019000/g' "$L"
+          sed -i 's/0x00031000/0x00040000/g' "$L"
 
-      - name: Compile FIDO2 Firmware
+      - name: Build firmware
         run: |
           ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none
 
-      - name: Create UF2 file
+      - name: Make UF2 file
         run: |
           git clone --depth 1 https://github.com uf2_tool
-          HEX_FILE=$(find target -name "*merged*.hex" | head -n 1)
-          python3 uf2_tool/utils/uf2conv.py -c -f 0xADA52840 -o xiao_fido2_key.uf2 "$HEX_FILE"
+          HEX=$(find target -name "*merged*.hex" | head -n 1)
+          python3 uf2_tool/utils/uf2conv.py -c -f 0xADA52840 -o xiao_fido2_key.uf2 "$HEX"
 
-      - name: Upload UF2 Artifact
+      - name: Upload UF2
         uses: actions/upload-artifact@v4
         with:
           name: xiao_fido2_key
