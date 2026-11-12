@@ -15,11 +15,11 @@ jobs:
       run:
         shell: bash
     steps:
-      - name: Checkout OpenSK ctap2.0
+      - name: Checkout OpenSK stable branch
         uses: actions/checkout@v4
         with:
           repository: google/OpenSK
-          ref: ctap2.0
+          ref: stable
           fetch-depth: 0
           submodules: recursive
 
@@ -28,13 +28,14 @@ jobs:
           sudo ln -sf /bin/bash /bin/sh
           sudo apt-get update
           sudo apt-get install -y python3 python3-pip libssl-dev pkg-config uuid-runtime git libudev-dev
-          rustup --version
+          rustup toolchain install stable
 
       - name: Setup OpenSK
         env:
           TERM: xterm
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
+          sed -i 's/cargo install/cargo +stable install --locked/g' setup.sh deploy.py
           chmod +x setup.sh
           ./setup.sh
 
@@ -50,11 +51,11 @@ jobs:
           sed -i 's/0x00030000/0x00019000/g' "$L"
           sed -i 's/0x00031000/0x00040000/g' "$L"
 
-      - name: Build firmware
+      - name: Fix Cargo cache and build
         run: |
-          find . -name "Cargo.toml" -exec sed -i 's/quote = "1"/quote = "=1.0.26"/g' {} +
-          find . -name "Cargo.toml" -exec sed -i 's/proc-macro2 = "1"/proc-macro2 = "=1.0.56"/g' {} +
-          find . -name "Cargo.toml" -exec sed -i 's/syn = "1"/syn = "=1.0.109"/g' {} +
+          find . -name "Cargo.toml" -exec cargo fetch --manifest-path {} \; 2>/dev/null || true
+          find /home/runner/.cargo -type f -name "Cargo.toml" -exec sed -i -E 's/edition[[:space:]]*=[[:space:]]*"202[0-9]"/edition = "2018"/g' {} +
+          sed -i 's/"build"/"build", "--offline"/g' deploy.py
           python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none
 
       - name: Make UF2 file
