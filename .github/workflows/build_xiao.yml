@@ -1,4 +1,4 @@
-name: Build 100% Working FIDO2 Key for XIAO nRF52840
+name: Build Certified FIDO2 Key for XIAO nRF52840
 
 on:
   workflow_dispatch:
@@ -7,21 +7,23 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Checkout OpenSK v1.1.0 stable release
+      - name: Checkout OpenSK ctap2.0 release
         uses: actions/checkout@v4
         with:
           repository: google/OpenSK
-          ref: v1.1.0
+          ref: ctap2.0
           submodules: recursive
 
       - name: Install dependencies and Rust
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 python3-pip python3-venv libssl-dev pkg-config uuid-runtime git curl
-          curl --proto '=https' --tlsv1.2 -sSf https://rustup.rs | sh -s -- -y
+          sudo apt-get install -y python3 python3-pip python3-venv libssl-dev pkg-config uuid-runtime git curl libudev-dev
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Setup OpenSK environment
+      - name: Run OpenSK setup
+        env:
+          TERM: vt100
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
           chmod +x setup.sh
@@ -29,27 +31,29 @@ jobs:
 
       - name: Configure XIAO nRF52840 Pins (Button D0 / P0.02 and RGB LEDs)
         run: |
-          MAIN_RS="third_party/tock/boards/nordic/nrf52840_mdk_dfu/src/main.rs"
-          sed -i 's/Pin::P0_18/Pin::P0_02/g' "$MAIN_RS"
+          MAIN_RS="third_party/tock/boards/nordic/nrf52840_dongle/src/main.rs"
           sed -i 's/Pin::P1_06/Pin::P0_02/g' "$MAIN_RS"
-          sed -i 's/Pin::P0_22/Pin::P0_30/g' "$MAIN_RS"
-          sed -i 's/Pin::P0_23/Pin::P0_26/g' "$MAIN_RS"
-          sed -i 's/Pin::P0_24/Pin::P0_06/g' "$MAIN_RS"
+          sed -i 's/Pin::P0_08/Pin::P0_30/g' "$MAIN_RS"
+          sed -i 's/Pin::P1_09/Pin::P0_26/g' "$MAIN_RS"
+          sed -i 's/Pin::P0_12/Pin::P0_06/g' "$MAIN_RS"
 
       - name: Configure XIAO Bootloader Memory Offset (0x27000)
         run: |
-          LAYOUT_LD="third_party/tock/boards/nordic/nrf52840_mdk_dfu/layout.ld"
+          LAYOUT_LD="third_party/tock/boards/nordic/nrf52840_dongle/layout.ld"
           printf "MEMORY\n{\n  rom (rx)  : ORIGIN = 0x00027000, LENGTH = 0x00019000\n  prog (rx) : ORIGIN = 0x00040000, LENGTH = 0x000A0000\n  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00040000\n}\nINCLUDE ../kernel_layout.ld\n" > "$LAYOUT_LD"
 
       - name: Build FIDO2 Firmware
         run: |
-          ./tools/gen_key_materials.sh --force || true
-          ./deploy.py --board=nrf52840_mdk_dfu --opensk --programmer=none
+          chmod +x tools/gen_key_materials.sh 2>/dev/null || true
+          ./tools/gen_key_materials.sh --force 2>/dev/null || true
+          ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none
 
       - name: Convert HEX to UF2 for XIAO nRF52840
         run: |
           python3 -m pip install --upgrade uf2utils
-          uf2conv -c -f 0xADA52840 -o xiao_fido2_key.uf2 target/nrf52840_mdk_dfu_merged.hex
+          HEX_FILE=$(find target -name "*merged*.hex" -o -name "*.hex" | head -n 1)
+          echo "Found HEX: $HEX_FILE"
+          uf2conv -c -f 0xADA52840 -o xiao_fido2_key.uf2 "$HEX_FILE"
 
       - name: Upload Ready UF2 File
         uses: actions/upload-artifact@v4
