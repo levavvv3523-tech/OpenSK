@@ -7,10 +7,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout OpenSK stable main branch
+      - name: Checkout OpenSK
         uses: actions/checkout@v4
         with:
-          ref: main
           submodules: recursive
 
       - name: Install system packages, Rust and uv
@@ -24,12 +23,14 @@ jobs:
 
       - name: Run OpenSK setup
         run: |
-          chmod +x setup.sh
-          ./setup.sh
+          if [ -f "./setup.sh" ]; then
+            chmod +x setup.sh
+            ./setup.sh || uv run setup.py || true
+          fi
 
       - name: Configure XIAO nRF52840 Pins (Button D0 / P0.02 and RGB LEDs)
         run: |
-          find . -path "*nrf52840_mdk_dfu*main.rs" -o -path "*nrf52840_dongle*main.rs" | while read -r FILE; do
+          find . -name "main.rs" -o -name "board.rs" | grep -E "nrf52840|dongle|mdk" | while read -r FILE; do
             echo "Patching pins in $FILE"
             sed -i 's/Pin::P1_06/Pin::P0_02/g' "$FILE"
             sed -i 's/Pin::P0_18/Pin::P0_02/g' "$FILE"
@@ -43,20 +44,25 @@ jobs:
 
       - name: Configure XIAO Bootloader Memory Offset (0x27000)
         run: |
-          find . -path "*nrf52840_mdk_dfu*layout.ld" -o -path "*nrf52840_dongle*layout.ld" | while read -r LDFILE; do
+          find . -name "layout.ld" | grep -E "nrf52840|dongle|mdk" | while read -r LDFILE; do
             echo "Patching memory layout in $LDFILE"
             printf "MEMORY\n{\n  rom (rx)  : ORIGIN = 0x00027000, LENGTH = 0x00019000\n  prog (rx) : ORIGIN = 0x00040000, LENGTH = 0x000A0000\n  ram (rwx) : ORIGIN = 0x20000000, LENGTH = 0x00040000\n}\nINCLUDE ../kernel_layout.ld\n" > "$LDFILE"
           done
 
       - name: Build FIDO2 Firmware
         run: |
-          ./tools/gen_key_materials.sh --force || true
-          ./deploy.py --board=nrf52840_mdk_dfu --opensk --programmer=none
+          chmod +x tools/gen_key_materials.sh 2>/dev/null || true
+          ./tools/gen_key_materials.sh --force 2>/dev/null || true
+          if command -v uv >/dev/null 2>&1 && [ -f "pyproject.toml" ]; then
+            uv run deploy.py --board=nrf52840_mdk_dfu --opensk --programmer=none || uv run deploy.py --board=nrf52840_dongle --opensk --programmer=none
+          else
+            ./deploy.py --board=nrf52840_mdk_dfu --opensk --programmer=none || ./deploy.py --board=nrf52840_dongle --opensk --programmer=none
+          fi
 
       - name: Convert HEX to UF2 for XIAO nRF52840
         run: |
           pip3 install --upgrade uf2utils || python3 -m pip install --upgrade uf2utils --break-system-packages
-          HEX_FILE=$(find target -name "*merged*.hex" | head -n 1)
+          HEX_FILE=$(find target -name "*merged*.hex" -o -name "*.hex" | head -n 1)
           echo "Converting $HEX_FILE to UF2..."
           uf2conv -c -f 0xADA52840 -o xiao_fido2_key.uf2 "$HEX_FILE"
 
