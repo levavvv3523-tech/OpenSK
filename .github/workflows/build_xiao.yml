@@ -50,28 +50,19 @@ jobs:
             sed -i 's/ORIGIN = 0x00031000/ORIGIN = 0x00040000/g' "$L"
           done
 
-      - name: Build firmware with auto-patch
+      - name: Fetch and patch all Cargo crates at once
         run: |
-          OK=0
-          for i in {1..30}; do
-            find /home/runner/.cargo -type f -name "Cargo.toml" -exec sed -i -E 's/edition[[:space:]]*=[[:space:]]*"202[0-9]"/edition = "2018"/g' {} + 2>/dev/null || true
-            if python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none; then
-              OK=1
-              break
-            fi
-          done
-          if [ "$OK" -ne 1 ]; then echo "Build failed after 30 retries"; exit 1; fi
+          cargo +stable fetch --target thumbv7em-none-eabi || true
+          find /home/runner/.cargo -type f -name "Cargo.toml" -exec sed -i -E 's/edition[[:space:]]*=[[:space:]]*"202[0-9]"/edition = "2018"/g' {} +
+          python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none
 
       - name: Make UF2 file
         run: |
           KERNEL_ELF=$(find . /tmp -path "*thumbv7em-none-eabi/release/nrf52840_dongle_dfu" -type f 2>/dev/null | head -n 1)
           APP_TAB=$(find . /tmp -name "*.tab" -type f 2>/dev/null | head -n 1)
-          echo "KERNEL_ELF=$KERNEL_ELF"
-          echo "APP_TAB=$APP_TAB"
           arm-none-eabi-objcopy -O binary "$KERNEL_ELF" kernel.bin
           mkdir -p app_unpack && tar -xf "$APP_TAB" -C app_unpack
           APP_BIN=$(find app_unpack -name "*.bin" -o -name "*.tbf" | head -n 1)
-          echo "APP_BIN=$APP_BIN"
           python3 -c '
           import struct
           k = open("kernel.bin", "rb").read()
@@ -82,7 +73,7 @@ jobs:
               for idx, (addr, chunk) in enumerate(parts):
                   hdr = struct.pack("<IIIIIIII", 0x0A324655, 0x9E5D5157, 0x00002000, addr, 256, idx, len(parts), 0xADA52840)
                   out.write(hdr + chunk + b"\x00"*220 + struct.pack("<I", 0x0AB16F30))
-          print("Created xiao_fido2_key.uf2 with", len(parts), "blocks")
+          print("Created xiao_fido2_key.uf2")
           '
 
       - name: Upload UF2
