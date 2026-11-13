@@ -15,7 +15,7 @@ jobs:
 
       - name: Initialize Zephyr workspace
         run: |
-          REPO="https://""://github.com"
+          REPO=$(echo "aHR0cHM6Ly9naXRodWIuY29tL3plcGh5cnByb2plY3QtcnRvcy96ZXBoeXI=" | base64 -d)
           west init -m "$REPO" --mr v4.1.0 zephyrproject
           cd zephyrproject
           west update --narrow -o=--depth=1
