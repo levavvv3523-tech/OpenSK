@@ -15,7 +15,7 @@ jobs:
 
       - name: Initialize Zephyr workspace
         run: |
-          west init -m https://github.com/zephyrproject-rtos/zephyr --mr v4.1.0 zephyrproject
+          west init -m https://github.com --mr v4.1.0 zephyrproject
           cd zephyrproject
           west update --narrow -o=--depth=1
           west zephyr-export
@@ -29,8 +29,10 @@ jobs:
       - name: Configure Button D0 and Build UF2
         run: |
           cd zephyrproject/zephyr
-          mkdir -p samples/subsys/authentication/fido2/boards
-          cat << 'EOF' > samples/subsys/authentication/fido2/boards/xiao_ble.overlay
+          SAMPLE_DIR=$(find samples -type d -name "fido2" | head -n 1)
+          echo "Found FIDO2 sample at: $SAMPLE_DIR"
+          mkdir -p "$SAMPLE_DIR/boards"
+          cat << 'EOF' > "$SAMPLE_DIR/boards/xiao_ble.overlay"
           / {
             aliases {
               sw0 = &fido_btn;
@@ -45,7 +47,7 @@ jobs:
             };
           };
           EOF
-          west build -p always -b xiao_ble samples/subsys/authentication/fido2
+          west build -p always -b xiao_ble "$SAMPLE_DIR"
           cp build/zephyr/zephyr.uf2 ../../xiao_fido2_key.uf2
 
       - name: Upload Ready UF2 File
