@@ -61,20 +61,23 @@ jobs:
 
       - name: Make UF2 file
         run: |
-          HEX=$(find target -name "*.hex" | head -n 1)
-          echo "Using HEX: $HEX"
-          arm-none-eabi-objcopy -I ihex -O binary "$HEX" fw.bin
+          find . -maxdepth 5 -type f \( -name "*.hex" -o -name "*.bin" -o -name "*.tab" -o -name "nrf52840_dongle_dfu" -o -name "ctap2" \)
+          KERNEL_ELF=$(find third_party/tock -path "*thumbv7em-none-eabi/release/nrf52840_dongle_dfu" -type f | head -n 1)
+          APP_TAB=$(find target -name "*.tab" -type f | head -n 1)
+          arm-none-eabi-objcopy -O binary "$KERNEL_ELF" kernel.bin
+          tar -xf "$APP_TAB"
+          APP_BIN=$(find . -maxdepth 1 -name "*.bin" ! -name "kernel.bin" | head -n 1)
           python3 -c '
           import struct
-          data = open("fw.bin", "rb").read()
-          blocks = [data[i:i+256].ljust(256, b"\xff") for i in range(0, len(data), 256)]
-          out = open("xiao_fido2_key.uf2", "wb")
-          for idx, chunk in enumerate(blocks):
-              addr = 0x00027000 + idx * 256
-              hdr = struct.pack("<IIIIIIII", 0x0A324655, 0x9E5D5157, 0x00002000, addr, 256, idx, len(blocks), 0xADA52840)
-              out.write(hdr + chunk + b"\x00"*220 + struct.pack("<I", 0x0AB16F30))
-          out.close()
-          print("Successfully created xiao_fido2_key.uf2")
+          k = open("kernel.bin", "rb").read()
+          a = open("'"$APP_BIN"'", "rb").read()
+          parts = [(0x00027000 + i, k[i:i+256].ljust(256, b"\xff")) for i in range(0, len(k), 256)]
+          parts += [(0x00040000 + i, a[i:i+256].ljust(256, b"\xff")) for i in range(0, len(a), 256)]
+          with open("xiao_fido2_key.uf2", "wb") as out:
+              for idx, (addr, chunk) in enumerate(parts):
+                  hdr = struct.pack("<IIIIIIII", 0x0A324655, 0x9E5D5157, 0x00002000, addr, 256, idx, len(parts), 0xADA52840)
+                  out.write(hdr + chunk + b"\x00"*220 + struct.pack("<I", 0x0AB16F30))
+          print("Created xiao_fido2_key.uf2 with", len(parts), "blocks")
           '
 
       - name: Upload UF2
