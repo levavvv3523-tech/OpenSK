@@ -34,7 +34,7 @@ jobs:
         env:
           TERM: xterm
         run: |
-          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install --upgrade pip setuptools wheel uf2utils
           sed -i 's/cargo install/cargo +stable install --locked/g' setup.sh deploy.py
           chmod +x setup.sh
           ./setup.sh
@@ -61,9 +61,8 @@ jobs:
 
       - name: Make UF2 file
         run: |
-          git clone --depth 1 https://github.com uf2_tool
           HEX=$(find target -name "*merged*.hex" | head -n 1)
-          python3 uf2_tool/utils/uf2conv.py -c -f 0xADA52840 -o xiao_fido2_key.uf2 "$HEX"
+          uf2conv -c -f 0xADA52840 -o xiao_fido2_key.uf2 "$HEX"
 
       - name: Upload UF2
         uses: actions/upload-artifact@v4
