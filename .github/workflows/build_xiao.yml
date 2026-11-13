@@ -52,21 +52,26 @@ jobs:
 
       - name: Build firmware with auto-patch
         run: |
-          for i in {1..15}; do
+          OK=0
+          for i in {1..30}; do
             find /home/runner/.cargo -type f -name "Cargo.toml" -exec sed -i -E 's/edition[[:space:]]*=[[:space:]]*"202[0-9]"/edition = "2018"/g' {} + 2>/dev/null || true
             if python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none; then
+              OK=1
               break
             fi
           done
+          if [ "$OK" -ne 1 ]; then echo "Build failed after 30 retries"; exit 1; fi
 
       - name: Make UF2 file
         run: |
-          find . -maxdepth 5 -type f \( -name "*.hex" -o -name "*.bin" -o -name "*.tab" -o -name "nrf52840_dongle_dfu" -o -name "ctap2" \)
-          KERNEL_ELF=$(find third_party/tock -path "*thumbv7em-none-eabi/release/nrf52840_dongle_dfu" -type f | head -n 1)
-          APP_TAB=$(find target -name "*.tab" -type f | head -n 1)
+          KERNEL_ELF=$(find . /tmp -path "*thumbv7em-none-eabi/release/nrf52840_dongle_dfu" -type f 2>/dev/null | head -n 1)
+          APP_TAB=$(find . /tmp -name "*.tab" -type f 2>/dev/null | head -n 1)
+          echo "KERNEL_ELF=$KERNEL_ELF"
+          echo "APP_TAB=$APP_TAB"
           arm-none-eabi-objcopy -O binary "$KERNEL_ELF" kernel.bin
-          tar -xf "$APP_TAB"
-          APP_BIN=$(find . -maxdepth 1 -name "*.bin" ! -name "kernel.bin" | head -n 1)
+          mkdir -p app_unpack && tar -xf "$APP_TAB" -C app_unpack
+          APP_BIN=$(find app_unpack -name "*.bin" -o -name "*.tbf" | head -n 1)
+          echo "APP_BIN=$APP_BIN"
           python3 -c '
           import struct
           k = open("kernel.bin", "rb").read()
