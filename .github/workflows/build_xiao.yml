@@ -53,9 +53,8 @@ jobs:
 
       - name: Fix Cargo cache and build
         run: |
-          find . -name "Cargo.toml" -exec cargo fetch --manifest-path {} \; 2>/dev/null || true
+          python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none || true
           find /home/runner/.cargo -type f -name "Cargo.toml" -exec sed -i -E 's/edition[[:space:]]*=[[:space:]]*"202[0-9]"/edition = "2018"/g' {} +
-          sed -i 's/"build"/"build", "--offline"/g' deploy.py
           python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none
 
       - name: Make UF2 file
