@@ -30,8 +30,8 @@ jobs:
       - name: Configure Button D0 and Build UF2
         run: |
           cd zephyrproject/zephyr
-         SAMPLE_DIR="samples/subsys/usb/hid"
-       echo "CONFIG_USB_DEVICE_HID=y" >> "$SAMPLE_DIR/prj.conf"
+          SAMPLE_DIR="samples/subsys/usb/hid"
+          echo "CONFIG_USB_DEVICE_HID=y" >> "$SAMPLE_DIR/prj.conf"
           mkdir -p "$SAMPLE_DIR/boards"
           cat << 'EOF' > "$SAMPLE_DIR/boards/xiao_ble.overlay"
           / {
