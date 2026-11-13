@@ -41,21 +41,23 @@ jobs:
 
       - name: Patch XIAO pins and memory
         run: |
-          M="third_party/tock/boards/nordic/nrf52840_dongle/src/main.rs"
-          L="third_party/tock/boards/nordic/nrf52840_dongle/layout.ld"
-          sed -i 's/Pin::P1_06/Pin::P0_02/g' "$M"
-          sed -i 's/Pin::P0_08/Pin::P0_30/g' "$M"
-          sed -i 's/Pin::P1_09/Pin::P0_26/g' "$M"
-          sed -i 's/Pin::P0_12/Pin::P0_06/g' "$M"
-          sed -i 's/0x00001000/0x00027000/g' "$L"
-          sed -i 's/0x00030000/0x00019000/g' "$L"
-          sed -i 's/0x00031000/0x00040000/g' "$L"
+          for M in third_party/tock/boards/nordic/nrf52840_dongle*/src/main.rs; do
+            sed -i 's/Pin::P1_06/Pin::P0_02/g; s/Pin::P0_08/Pin::P0_30/g; s/Pin::P1_09/Pin::P0_26/g; s/Pin::P0_12/Pin::P0_06/g' "$M"
+          done
+          for L in third_party/tock/boards/nordic/nrf52840_dongle*/layout.ld; do
+            sed -i 's/ORIGIN = 0x00001000, LENGTH = 0x00030000/ORIGIN = 0x00027000, LENGTH = 0x00019000/g' "$L"
+            sed -i 's/ORIGIN = 0x00026000, LENGTH = 0x0001A000/ORIGIN = 0x00027000, LENGTH = 0x00019000/g' "$L"
+            sed -i 's/ORIGIN = 0x00031000/ORIGIN = 0x00040000/g' "$L"
+          done
 
-      - name: Fix Cargo cache and build
+      - name: Build firmware with auto-patch
         run: |
-          python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none || true
-          find /home/runner/.cargo -type f -name "Cargo.toml" -exec sed -i -E 's/edition[[:space:]]*=[[:space:]]*"202[0-9]"/edition = "2018"/g' {} +
-          python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none
+          for i in {1..15}; do
+            find /home/runner/.cargo -type f -name "Cargo.toml" -exec sed -i -E 's/edition[[:space:]]*=[[:space:]]*"202[0-9]"/edition = "2018"/g' {} + 2>/dev/null || true
+            if python3 ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none; then
+              break
+            fi
+          done
 
       - name: Make UF2 file
         run: |
