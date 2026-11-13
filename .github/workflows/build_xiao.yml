@@ -27,7 +27,7 @@ jobs:
         run: |
           sudo ln -sf /bin/bash /bin/sh
           sudo apt-get update
-          sudo apt-get install -y python3 python3-pip libssl-dev pkg-config uuid-runtime git libudev-dev
+          sudo apt-get install -y python3 python3-pip libssl-dev pkg-config uuid-runtime git libudev-dev binutils-arm-none-eabi
           rustup toolchain install stable
 
       - name: Setup OpenSK
@@ -61,29 +61,21 @@ jobs:
 
       - name: Make UF2 file
         run: |
-          python3 - << 'EOF'
-          import glob, struct
-          hex_file = glob.glob("target/**/*merged*.hex", recursive=True)[0]
-          mem, upper = {}, 0
-          for line in open(hex_file):
-              if not line.startswith(":"): continue
-              b = bytes.fromhex(line[1:].strip())
-              cnt, addr, rtype, data = b[0], (b[1]<<8)|b[2], b[3], b[4:-1]
-              if rtype == 0:
-                  for i, v in enumerate(data): mem[upper + addr + i] = v
-              elif rtype == 4:
-                  upper = ((data[0]<<8)|data[1]) << 16
-          addrs = sorted(mem)
-          blocks = []
-          for base in range(addrs[0] & ~255, addrs[-1] + 1, 256):
-              chunk = bytes(mem.get(base + i, 0xFF) for i in range(256))
-              if any(x != 0xFF for x in chunk): blocks.append((base, chunk))
-          with open("xiao_fido2_key.uf2", "wb") as f:
-              for idx, (addr, chunk) in enumerate(blocks):
-                  hdr = struct.pack("<IIIIIIII", 0x0A324655, 0x9E5D5157, 0x00002000, addr, 256, idx, len(blocks), 0xADA52840)
-                  f.write(hdr + chunk + b"\x00"*220 + struct.pack("<I", 0x0AB16F30))
-          print(f"Packed {len(blocks)} blocks into xiao_fido2_key.uf2")
-          EOF
+          HEX=$(find target -name "*.hex" | head -n 1)
+          echo "Using HEX: $HEX"
+          arm-none-eabi-objcopy -I ihex -O binary "$HEX" fw.bin
+          python3 -c '
+          import struct
+          data = open("fw.bin", "rb").read()
+          blocks = [data[i:i+256].ljust(256, b"\xff") for i in range(0, len(data), 256)]
+          out = open("xiao_fido2_key.uf2", "wb")
+          for idx, chunk in enumerate(blocks):
+              addr = 0x00027000 + idx * 256
+              hdr = struct.pack("<IIIIIIII", 0x0A324655, 0x9E5D5157, 0x00002000, addr, 256, idx, len(blocks), 0xADA52840)
+              out.write(hdr + chunk + b"\x00"*220 + struct.pack("<I", 0x0AB16F30))
+          out.close()
+          print("Successfully created xiao_fido2_key.uf2")
+          '
 
       - name: Upload UF2
         uses: actions/upload-artifact@v4
