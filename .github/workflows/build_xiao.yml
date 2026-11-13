@@ -34,7 +34,7 @@ jobs:
         env:
           TERM: xterm
         run: |
-          python3 -m pip install --upgrade pip setuptools wheel uf2utils
+          python3 -m pip install --upgrade pip setuptools wheel
           sed -i 's/cargo install/cargo +stable install --locked/g' setup.sh deploy.py
           chmod +x setup.sh
           ./setup.sh
@@ -61,8 +61,29 @@ jobs:
 
       - name: Make UF2 file
         run: |
-          HEX=$(find target -name "*merged*.hex" | head -n 1)
-          uf2conv -c -f 0xADA52840 -o xiao_fido2_key.uf2 "$HEX"
+          python3 - << 'EOF'
+          import glob, struct
+          hex_file = glob.glob("target/**/*merged*.hex", recursive=True)[0]
+          mem, upper = {}, 0
+          for line in open(hex_file):
+              if not line.startswith(":"): continue
+              b = bytes.fromhex(line[1:].strip())
+              cnt, addr, rtype, data = b[0], (b[1]<<8)|b[2], b[3], b[4:-1]
+              if rtype == 0:
+                  for i, v in enumerate(data): mem[upper + addr + i] = v
+              elif rtype == 4:
+                  upper = ((data[0]<<8)|data[1]) << 16
+          addrs = sorted(mem)
+          blocks = []
+          for base in range(addrs[0] & ~255, addrs[-1] + 1, 256):
+              chunk = bytes(mem.get(base + i, 0xFF) for i in range(256))
+              if any(x != 0xFF for x in chunk): blocks.append((base, chunk))
+          with open("xiao_fido2_key.uf2", "wb") as f:
+              for idx, (addr, chunk) in enumerate(blocks):
+                  hdr = struct.pack("<IIIIIIII", 0x0A324655, 0x9E5D5157, 0x00002000, addr, 256, idx, len(blocks), 0xADA52840)
+                  f.write(hdr + chunk + b"\x00"*220 + struct.pack("<I", 0x0AB16F30))
+          print(f"Packed {len(blocks)} blocks into xiao_fido2_key.uf2")
+          EOF
 
       - name: Upload UF2
         uses: actions/upload-artifact@v4
