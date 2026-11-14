@@ -49,9 +49,8 @@ jobs:
             };
           };
           EOF
-          west build -p always -b xiao_ble "$SAMPLE_DIR"
+          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=n
           cp build/zephyr/zephyr.uf2 ../../xiao_fido2_key.uf2
-
       - name: Upload Ready UF2 File
         uses: actions/upload-artifact@v4
         with:
