@@ -5,13 +5,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Install Zephyr dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends git cmake ninja-build gperf ccache dfu-util device-tree-compiler wget python3-dev python3-pip python3-setuptools python3-tk python3-wheel xz-utils file make gcc gcc-multilib g++-multilib libsdl2-dev libmagic1
-          python3 -m pip install --upgrade pip west
+          python3 -m pip install --upgrade --break-system-packages pip west
 
       - name: Initialize Zephyr workspace
         run: |
@@ -20,7 +20,7 @@ jobs:
           cd zephyrproject
           west update --narrow -o=--depth=1
           west zephyr-export
-          python3 -m pip install -r zephyr/scripts/requirements.txt
+          python3 -m pip install --break-system-packages -r zephyr/scripts/requirements.txt
 
       - name: Install Zephyr SDK
         run: |
