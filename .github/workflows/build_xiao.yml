@@ -49,12 +49,13 @@ jobs:
             };
             hid_dev_0: hid_dev_0 {
               compatible = "zephyr,hid-device";
-              interface-name = "HID0";
               in-report-size = <64>;
+              out-report-size = <64>;
               in-polling-period-us = <1000>;
             };
           };
           EOF
+          cat dts/bindings/usb/zephyr,hid-device.yaml || true
           west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF
           cp build/zephyr/zephyr.uf2 ../../xiao_fido2_key.uf2
 
