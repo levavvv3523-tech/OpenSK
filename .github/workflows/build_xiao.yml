@@ -33,7 +33,6 @@ jobs:
         run: |
           cd zephyrproject/zephyr
           SAMPLE_DIR="samples/subsys/authentication/fido2"
-          sed -i 's/CONFIG_FIDO2_TRANSPORT_USB_HID=y/CONFIG_FIDO2_TRANSPORT_USB_HID=y\nCONFIG_USB_DEVICE_HID=y/' "$SAMPLE_DIR/prj.conf" || true
           mkdir -p "$SAMPLE_DIR/boards"
           cat << 'EOF' > "$SAMPLE_DIR/boards/xiao_ble.overlay"
           / {
@@ -48,9 +47,15 @@ jobs:
                 label = "User Presence Button";
               };
             };
+            hid_dev_0: hid_dev_0 {
+              compatible = "zephyr,hid-device";
+              interface-name = "HID0";
+              in-report-size = <64>;
+              in-polling-period-us = <1000>;
+            };
           };
           EOF
-          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF -DDTC_OVERLAY_FILE="$SAMPLE_DIR/app.overlay;boards/xiao_ble.overlay"
+          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF
           cp build/zephyr/zephyr.uf2 ../../xiao_fido2_key.uf2
 
       - name: Upload Ready UF2 File
