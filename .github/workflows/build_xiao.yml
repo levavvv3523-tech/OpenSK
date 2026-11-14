@@ -16,7 +16,7 @@ jobs:
       - name: Initialize Zephyr workspace
         run: |
           REPO=$(echo "aHR0cHM6Ly9naXRodWIuY29tL3plcGh5cnByb2plY3QtcnRvcy96ZXBoeXI=" | base64 -d)
-          west init -m "$REPO" --mr v4.1.0 zephyrproject
+          west init -m "$REPO" --mr main zephyrproject
           cd zephyrproject
           west update --narrow -o=--depth=1
           west zephyr-export
@@ -30,8 +30,7 @@ jobs:
       - name: Configure Button D0 and Build UF2
         run: |
           cd zephyrproject/zephyr
-          SAMPLE_DIR="samples/subsys/usb/hid"
-          echo "CONFIG_USB_DEVICE_HID=y" >> "$SAMPLE_DIR/prj.conf"
+          SAMPLE_DIR="samples/subsys/authentication/fido2"
           mkdir -p "$SAMPLE_DIR/boards"
           cat << 'EOF' > "$SAMPLE_DIR/boards/xiao_ble.overlay"
           / {
