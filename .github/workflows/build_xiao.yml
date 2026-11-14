@@ -47,10 +47,18 @@ jobs:
                 label = "User Presence Button";
               };
             };
+            hid_dev_0: hid_dev_0 {
+              compatible = "zephyr,hid-device";
+              interface-name = "HID0";
+              protocol-code = "none";
+              in-report-size = <64>;
+              in-polling-period-us = <1000>;
+            };
           };
           EOF
-          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=n
+          KCONFIG_WARN_ERROR=n west build -p always -b xiao_ble "$SAMPLE_DIR"
           cp build/zephyr/zephyr.uf2 ../../xiao_fido2_key.uf2
+
       - name: Upload Ready UF2 File
         uses: actions/upload-artifact@v4
         with:
