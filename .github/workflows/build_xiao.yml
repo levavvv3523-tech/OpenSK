@@ -24,8 +24,10 @@ jobs:
 
       - name: Install Zephyr SDK
         run: |
-          cd zephyrproject
-          west sdk install --toolchains arm-zephyr-eabi
+          SDK_URL=$(echo "aHR0cHM6Ly9naXRodWIuY29tL3plcGh5cnByb2plY3QtcnRvcy9zZGstbmcvcmVsZWFzZXMvZG93bmxvYWQvdjAuMTcuMC96ZXBoeXItc2RrLTAuMTcuMF9saW51eC14ODZfNjRfbWluaW1hbC50YXIueHo=" | base64 -d)
+          wget -q "$SDK_URL" -O sdk.tar.xz
+          sudo tar -xf sdk.tar.xz -C /opt
+          sudo /opt/zephyr-sdk-0.17.0/setup.sh -t arm-zephyr-eabi -c
 
       - name: Configure Button D0 and Build UF2
         run: |
