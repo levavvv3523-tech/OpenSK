@@ -56,6 +56,7 @@ jobs:
               in-report-size = <64>;
               out-report-size = <64>;
               in-polling-period-us = <1000>;
+              out-polling-period-us = <1000>;
             };
           };
           EOF
