@@ -10,9 +10,8 @@ jobs:
       - name: Install Rust and build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git curl python3-pip libssl-dev pkg-config libudev-dev
-          curl --proto '=https' --tlsv1.2 -sSf https://rustup.rs | sh -s -- -y
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+          sudo apt-get install -y git curl python3-pip libssl-dev pkg-config libudev-dev rustup
+          rustup default stable
           python3 -m pip install --upgrade pip colorama tqdm pyyaml
 
       - name: Clone OpenSK with XIAO nRF52840 support
@@ -38,7 +37,7 @@ jobs:
           cd opensk_src
           ./deploy.py --board=xiao_nrf52840 --opensk --programmer=none
           python3 -c '
-          import struct, sys
+          import struct
           data = open("target/xiao_nrf52840_opensk.bin", "rb").read()
           out = bytearray()
           blocks = (len(data) + 255) // 256
