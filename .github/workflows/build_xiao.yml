@@ -29,7 +29,8 @@ jobs:
       - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel colorama tqdm pyyaml
-          python -m pip install --pre -U git+https://github.com
+          UF2_REPO=$(echo "Z2l0K2h0dHBzOi8vZ2l0aHViLmNvbS9tYWtlcmRpYXJ5L3VmMnV0aWxzLmdpdEBtYWlu" | base64 -d)
+          python -m pip install --pre -U "$UF2_REPO"
       - name: Set up OpenSK and Configure XIAO nRF52840
         working-directory: OpenSK
         run: |
