@@ -7,10 +7,10 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: Install Rust and build tools
+      - name: Install build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y git curl python3-pip libssl-dev pkg-config libudev-dev rustup
+          sudo apt-get install -y git curl python3-pip libssl-dev pkg-config libudev-dev
           rustup default stable
           python3 -m pip install --upgrade pip colorama tqdm pyyaml
 
