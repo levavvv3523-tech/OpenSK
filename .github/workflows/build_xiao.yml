@@ -29,7 +29,7 @@ jobs:
           sudo tar -xf sdk.tar.xz -C /opt
           sudo /opt/zephyr-sdk-1.0.0/setup.sh -t arm-zephyr-eabi -c
 
-      - name: Configure Button D1 and Build UF2
+      - name: Configure Pure USB FIDO2 and Build UF2
         run: |
           cd zephyrproject/zephyr
           SAMPLE_DIR="samples/subsys/authentication/fido2"
@@ -60,8 +60,14 @@ jobs:
               out-polling-period-us = <1000>;
             };
           };
+          &i2c0 {
+            status = "disabled";
+          };
+          &pdm0 {
+            status = "disabled";
+          };
           EOF
-          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF -DCONFIG_BT=n -DCONFIG_FIDO2_TRANSPORT_BLE=n -DCONFIG_USB_DEVICE_STACK=n -DCONFIG_CONSOLE=n -DCONFIG_UART_CONSOLE=n -DCONFIG_USE_DT_CODE_PARTITION=n -DCONFIG_FLASH_LOAD_OFFSET=0x1000 -DCONFIG_PM=y -DCONFIG_BOARD_ENABLE_DCDC=y
+          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF -DCONFIG_BT=n -DCONFIG_FIDO2_TRANSPORT_BLE=n -DCONFIG_USB_DEVICE_STACK=n -DCONFIG_CONSOLE=n -DCONFIG_UART_CONSOLE=n -DCONFIG_USE_DT_CODE_PARTITION=n -DCONFIG_FLASH_LOAD_OFFSET=0x1000 -DCONFIG_PM=y -DCONFIG_BOARD_ENABLE_DCDC=y -DCONFIG_I2C=n -DCONFIG_SENSOR=n
           cp build/zephyr/zephyr.uf2 ../../xiao_fido2_key.uf2
 
       - name: Upload Ready UF2 File
