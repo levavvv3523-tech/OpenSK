@@ -49,6 +49,7 @@ jobs:
               fido_btn: button_0 {
                 gpios = <&gpio0 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
                 label = "User Presence Button";
+                zephyr,code = <11>;
               };
             };
             hid_dev_0: hid_dev_0 {
