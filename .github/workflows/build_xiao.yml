@@ -29,7 +29,7 @@ jobs:
           sudo tar -xf sdk.tar.xz -C /opt
           sudo /opt/zephyr-sdk-1.0.0/setup.sh -t arm-zephyr-eabi -c
 
-      - name: Configure Button D0 and Build UF2
+      - name: Configure Button D1 and Build UF2
         run: |
           cd zephyrproject/zephyr
           SAMPLE_DIR="samples/subsys/authentication/fido2"
@@ -47,7 +47,7 @@ jobs:
             buttons: buttons {
               compatible = "gpio-keys";
               fido_btn: button_0 {
-                gpios = <&gpio0 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
+                gpios = <&gpio0 3 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
                 label = "User Presence Button";
                 zephyr,code = <11>;
               };
@@ -61,7 +61,7 @@ jobs:
             };
           };
           EOF
-          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF -DCONFIG_FIDO2_TRANSPORT_BLE=n -DCONFIG_USB_DEVICE_STACK=n -DCONFIG_CONSOLE=n -DCONFIG_UART_CONSOLE=n -DCONFIG_USE_DT_CODE_PARTITION=n -DCONFIG_FLASH_LOAD_OFFSET=0x1000
+          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF -DCONFIG_FIDO2_TRANSPORT_BLE=n -DCONFIG_USB_DEVICE_STACK=n -DCONFIG_CONSOLE=n -DCONFIG_UART_CONSOLE=n -DCONFIG_USE_DT_CODE_PARTITION=n -DCONFIG_FLASH_LOAD_OFFSET=0x1000 -DCONFIG_PM=y
           cp build/zephyr/zephyr.uf2 ../../xiao_fido2_key.uf2
 
       - name: Upload Ready UF2 File
