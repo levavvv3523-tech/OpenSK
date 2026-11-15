@@ -38,12 +38,13 @@ jobs:
           / {
             chosen {
               zephyr,fido2-hid = &hid_dev_0;
+              zephyr,fido2-up-input = &buttons;
             };
             aliases {
               sw0 = &fido_btn;
               led0 = &led1;
             };
-            buttons {
+            buttons: buttons {
               compatible = "gpio-keys";
               fido_btn: button_0 {
                 gpios = <&gpio0 2 (GPIO_PULL_UP | GPIO_ACTIVE_LOW)>;
