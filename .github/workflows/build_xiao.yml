@@ -55,8 +55,7 @@ jobs:
             };
           };
           EOF
-          cat dts/bindings/usb/zephyr,hid-device.yaml || true
-          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF
+          west build -p always -b xiao_ble "$SAMPLE_DIR" -- -DKCONFIG_WARN_ERROR=OFF -DCONFIG_FIDO2_TRANSPORT_BLE=n
           cp build/zephyr/zephyr.uf2 ../../xiao_fido2_key.uf2
 
       - name: Upload Ready UF2 File
