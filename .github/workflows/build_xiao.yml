@@ -28,7 +28,8 @@ jobs:
         working-directory: OpenSK
         run: |
           ./setup.sh
-          find . -path "*nrf52840*" -name "*.rs" -exec sed -i 's/P0_18/P0_03/g; s/P1_06/P0_03/g; s/P1_00/P0_03/g' {} +
+          grep -rnE "button|Button|P0_18|p0_18|P1_00|p1_00" third_party/wasefire/crates/runner-nordic/ || true
+          find third_party/wasefire -name "*.rs" -exec sed -i 's/P1_00/P0_03/g; s/p1_00/p0_03/g; s/P0_18/P0_03/g; s/p0_18/p0_03/g; s/P1_06/P0_03/g; s/p1_06/p0_03/g' {} +
       - name: Building board nrf52840_mdk for XIAO
         working-directory: OpenSK
         run: |
