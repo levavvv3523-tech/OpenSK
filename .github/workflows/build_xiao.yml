@@ -24,11 +24,11 @@ jobs:
           python-version: '3.10'
       - name: Install Python dependencies
         run: python -m pip install --upgrade pip setuptools wheel colorama tqdm pyyaml
-      - name: Set up OpenSK and Configure XIAO nRF52840
+      - name: Set up OpenSK and Configure Button D1
         working-directory: OpenSK
         run: |
           ./setup.sh
-          find . -maxdepth 4 -name "main.rs" -exec sed -i 's/Pin::P0_18/Pin::P0_03/g; s/Pin::P1_06/Pin::P0_03/g' {} +
+          find . -path "*nrf52840*" -name "*.rs" -exec sed -i 's/P0_18/P0_03/g; s/P1_06/P0_03/g; s/P1_00/P0_03/g' {} +
       - name: Building board nrf52840_mdk for XIAO
         working-directory: OpenSK
         run: |
