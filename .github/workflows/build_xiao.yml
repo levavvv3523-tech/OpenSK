@@ -33,12 +33,11 @@ jobs:
       - name: Building board nrf52840_dongle_dfu for XIAO
         working-directory: OpenSK
         run: |
-          DEPLOY_SCRIPT=$(find . -maxdepth 3 -name "deploy.py" | head -n 1)
-          if [ -z "$DEPLOY_SCRIPT" ]; then ls -la; exit 1; fi
-          python3 "$DEPLOY_SCRIPT" --board=nrf52840_dongle_dfu --opensk --programmer=none
+          cat flash.sh
+          ./flash.sh --board=nrf52840_dongle_dfu --no-flash || ./flash.sh nrf52840_dongle_dfu --no-flash
           python3 -c '
           import struct, glob
-          bin_file = glob.glob("**/target/*opensk*.bin", recursive=True)[0]
+          bin_file = glob.glob("**/target/**/*opensk*.bin", recursive=True)
           data = open(bin_file, "rb").read()
           out = bytearray()
           blocks = (len(data) + 255) // 256
