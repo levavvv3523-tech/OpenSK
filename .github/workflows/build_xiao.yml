@@ -29,26 +29,11 @@ jobs:
         run: |
           ./setup.sh
           find . -maxdepth 4 -name "main.rs" -exec sed -i 's/Pin::P0_18/Pin::P0_03/g; s/Pin::P1_06/Pin::P0_03/g' {} +
-          find . -maxdepth 4 -name "layout.ld" -exec sed -i 's/0x00027000/0x00001000/g; s/0x27000/0x1000/g' {} +
       - name: Building board nrf52840_mdk for XIAO
         working-directory: OpenSK
         run: |
-          mkdir -p fake_bin
-          for cmd in probe-rs nrfjprog nrfutil uf2conv; do printf '#!/bin/sh\nexit 0\n' > fake_bin/$cmd && chmod +x fake_bin/$cmd; done
-          PATH="$PWD/fake_bin:$PATH" ./flash.sh nrf52840_mdk
-          python3 -c '
-          import struct, glob
-          bins = [f for f in glob.glob("**/target/**/*opensk*", recursive=True) if not f.endswith((".d", ".rlib", ".rmeta", ".o", ".hex", ".uf2"))]
-          bins.sort(key=lambda x: len(open(x, "rb").read()), reverse=True)
-          data = open(bins[0], "rb").read()
-          out = bytearray()
-          blocks = (len(data) + 255) // 256
-          for i in range(blocks):
-              chunk = data[i*256:(i+1)*256].ljust(256, b"\x00")
-              hdr = struct.pack("<IIIIIIII", 0x0A324655, 0x9E5D5157, 0x00002000, 0x00001000 + i*256, 256, i, blocks, 0xADA52840)
-              out += hdr + chunk + b"\x00"*220 + struct.pack("<I", 0x0AB16F30)
-          open("opensk_xiao_d1.uf2", "wb").write(out)
-          '
+          ./flash.sh nrf52840_mdk || true
+          python3 third_party/wasefire/.root/bin/uf2conv.py -c -f 0xADA52840 -o opensk_xiao_d1.uf2 target/wasefire/platform.hex
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
