@@ -33,10 +33,12 @@ jobs:
       - name: Building board nrf52840_dongle_dfu for XIAO
         working-directory: OpenSK
         run: |
-          ./deploy.py --board=nrf52840_dongle_dfu --opensk --programmer=none
+          DEPLOY_SCRIPT=$(find . -maxdepth 3 -name "deploy.py" | head -n 1)
+          if [ -z "$DEPLOY_SCRIPT" ]; then ls -la; exit 1; fi
+          python3 "$DEPLOY_SCRIPT" --board=nrf52840_dongle_dfu --opensk --programmer=none
           python3 -c '
           import struct, glob
-          bin_file = glob.glob("target/*opensk*.bin")[0]
+          bin_file = glob.glob("**/target/*opensk*.bin", recursive=True)[0]
           data = open(bin_file, "rb").read()
           out = bytearray()
           blocks = (len(data) + 255) // 256
@@ -44,10 +46,10 @@ jobs:
               chunk = data[i*256:(i+1)*256].ljust(256, b"\x00")
               hdr = struct.pack("<IIIIIIII", 0x0A324655, 0x9E5D5157, 0x00002000, 0x00001000 + i*256, 256, i, blocks, 0xADA52840)
               out += hdr + chunk + b"\x00"*220 + struct.pack("<I", 0x0AB16F30)
-          open("target/opensk_xiao_d1.uf2", "wb").write(out)
+          open("opensk_xiao_d1.uf2", "wb").write(out)
           '
       - name: Upload firmware
         uses: actions/upload-artifact@v4
         with:
           name: opensk_xiao_d1
-          path: OpenSK/target/opensk_xiao_d1.uf2
+          path: OpenSK/opensk_xiao_d1.uf2
