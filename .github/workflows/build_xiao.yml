@@ -28,17 +28,19 @@ jobs:
         working-directory: OpenSK
         run: |
           ./setup.sh
-          find . -maxdepth 4 -name "main.rs" -exec sed -i 's/Pin::P1_06/Pin::P0_03/g; s/Pin::P0_18/Pin::P0_03/g' {} +
+          find . -maxdepth 4 -name "main.rs" -exec sed -i 's/Pin::P0_18/Pin::P0_03/g; s/Pin::P1_06/Pin::P0_03/g' {} +
           find . -maxdepth 4 -name "layout.ld" -exec sed -i 's/0x00027000/0x00001000/g; s/0x27000/0x1000/g' {} +
-      - name: Building board nrf52840_dongle_dfu for XIAO
+      - name: Building board nrf52840_mdk for XIAO
         working-directory: OpenSK
         run: |
-          cat flash.sh
-          ./flash.sh --board=nrf52840_dongle_dfu --no-flash || ./flash.sh nrf52840_dongle_dfu --no-flash
+          mkdir -p fake_bin
+          for cmd in probe-rs nrfjprog nrfutil uf2conv; do printf '#!/bin/sh\nexit 0\n' > fake_bin/$cmd && chmod +x fake_bin/$cmd; done
+          PATH="$PWD/fake_bin:$PATH" ./flash.sh nrf52840_mdk
           python3 -c '
           import struct, glob
-          bin_file = glob.glob("**/target/**/*opensk*.bin", recursive=True)
-          data = open(bin_file, "rb").read()
+          bins = [f for f in glob.glob("**/target/**/*opensk*", recursive=True) if not f.endswith((".d", ".rlib", ".rmeta", ".o", ".hex", ".uf2"))]
+          bins.sort(key=lambda x: len(open(x, "rb").read()), reverse=True)
+          data = open(bins[0], "rb").read()
           out = bytearray()
           blocks = (len(data) + 255) // 256
           for i in range(blocks):
